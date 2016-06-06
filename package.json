@@ -1,0 +1,16 @@
+{
+	"name": "Bot-Server",
+	"description": "Telegram bot server, with multilanguage, syncronized buttons and commands, menu & submenu, custom menu, etc.",
+	"version": "1.0.0",
+	"author": "denisx <nodejs-botserver@denisx.ru> (http://denisx.ru)",
+	"main": "bot-server.js",
+	"dependencies": {
+		"os": "^0.1.1",
+		"node-telegram-bot": "^0.1.9"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/denisx/bot-server.git"
+	},
+	"license": "MIT"
+}
