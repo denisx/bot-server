@@ -1,6 +1,6 @@
 {
 	"name": "Bot-Server",
-	"description": "Telegram bot server, with multilanguage, syncronized buttons and commands, menu & submenu, custom menu, etc.",
+	"description": "Telegram bot server, with multilanguage, syncronized buttons and commands, menu & submenu, custom keyboard, etc.",
 	"version": "1.0.0",
 	"author": "denisx <nodejs-botserver@denisx.ru> (http://denisx.ru)",
 	"main": "bot-server.js",
