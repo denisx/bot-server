@@ -36,6 +36,7 @@ var Bot = function(opts) {
 Bot.prototype.init = function () {
 	var self = this;
 	var origin = os.hostname();
+	console.log('origin=', origin);
 	self.settingsMachine = self.settings[origin];
 	self.bot = new NodeBot({
 		token: self.settingsMachine.bot.token
@@ -44,7 +45,9 @@ Bot.prototype.init = function () {
 	self.queue = {};
 	self.dev = self.settingsMachine.bot.dev || false;
 	self.botStoped = true;
-	self.bot.enableAnalytics(self.settingsMachine.botan.token);
+	if (self.settingsMachine.botan) {
+		self.bot.enableAnalytics(self.settingsMachine.botan.token);
+	}
 	self.bot
 		/** @param {Object} msg.from */
 		.on('message', function(msg) { // local user event
@@ -95,7 +98,8 @@ Bot.prototype.clearSessions = function () {
 	var sessionMinutes = 15;
 	Object.keys(self.menu).forEach(function (id) {
 		var menu = self.menu[id];
-		console.log('check last ping', id, getDT(menu.lastPing - 1), ' || ', getDT((menu.lastPing - 1) + sessionMinutes * 60 * 1000), ' || ', getDT(now - 1));
+		console.log('check last ping', id, getDT(menu.lastPing - 1), ' || ', 
+			getDT((menu.lastPing - 1) + sessionMinutes * 60 * 1000), ' || ', getDT(now - 1));
 		if ((menu.lastPing - 1) + sessionMinutes * 60 * 1000 < now - 1) {
 			console.log('clear', id, getDT(menu.lastPing - 1), getDT(now - 1));
 			delete self.menu[id];
@@ -131,8 +135,9 @@ Bot.prototype.onMessage = function (id) {
 		if (botFree) {
 			console.error('error', 'botFree');
 			botFree = false;
-			menu.answer = 'no answer :)';
+			menu.answer = 'no answer :|';
 			self.commandAnswer(id);
+			// self.parseText(id);
 		}
 	}
 };
@@ -192,6 +197,7 @@ Bot.prototype.parseText = function (id) {
 		}
 	});
 	/** @param {Object} menu.dropCommand */
+	/** @param {Object} menu.dropUserText */
 	command = (menu.dropCommand) ? '' : command;
 	delete menu.dropCommand;
 	menu.command = command;
