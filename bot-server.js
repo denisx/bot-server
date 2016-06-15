@@ -191,8 +191,9 @@ Bot.prototype.parseText = function (id) {
 		return;
 	}
 	Object.keys(menu.texts.acceptCommands).forEach(function (key) {
+		var keyLow = key.toLowerCase();
 		var elem = menu.texts.acceptCommands[key].toLowerCase();
-		if (key == userText || elem == userText ) {
+		if (keyLow == userText || elem == userText ) {
 			command = key;
 		}
 	});
@@ -278,8 +279,8 @@ Bot.prototype.sendMessage = function (id, callback) {
 
 Bot.prototype.on = function (menu, callback) {
 	var self = this;
-	self._on = self._on || {};
-	var on = self._on;
+	self.onStack = self.onStack || {};
+	var on = self.onStack;
 	if (typeof callback == 'function') { // init on
 		on[menu] = callback;
 	} else { // call, id = callback
