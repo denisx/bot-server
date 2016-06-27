@@ -269,8 +269,7 @@ Bot.prototype.sendMessage = function (id, callback) {
 					keyboard: menu.keyboard,
 					resize_keyboard: self.vars.resizeKeyboard
 				},
-			disable_web_page_preview: (menu.disable_web_page_preview) ? true: (self.disable_web_page_preview),
-			
+			disable_web_page_preview: (menu.disable_web_page_preview) ? true: (self.disable_web_page_preview)
 		}, function(err, msg) {
 			menu.lastMsg = msg;
 			if (!err && callback) {
