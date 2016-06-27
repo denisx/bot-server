@@ -71,6 +71,11 @@ Bot.prototype.init = function () {
 		})
 		.on('stop', function (msg) { // local user event
 			console.log('bot /stop', msg);
+			delete self.menu[msg.from.id];
+		})
+		.on('restart', function (msg) { // local user event
+			console.log('bot /restart', msg);
+			delete self.menu[msg.from.id];
 		})
 		.on('start', function (msg) { // local user event
 			console.log('bot /start', msg);
