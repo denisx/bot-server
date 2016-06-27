@@ -31,6 +31,7 @@ var Bot = function(opts) {
 		resizeKeyboard: true
 	};
 	self.saveQueueParams = opts.saveQueueParams;
+	self.disable_web_page_preview = opts.disable_web_page_preview;
 };
 
 Bot.prototype.init = function () {
@@ -267,7 +268,9 @@ Bot.prototype.sendMessage = function (id, callback) {
 			reply_markup: {
 					keyboard: menu.keyboard,
 					resize_keyboard: self.vars.resizeKeyboard
-				}
+				},
+			disable_web_page_preview: (menu.disable_web_page_preview) ? true: (self.disable_web_page_preview),
+			
 		}, function(err, msg) {
 			menu.lastMsg = msg;
 			if (!err && callback) {
