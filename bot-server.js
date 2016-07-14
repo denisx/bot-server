@@ -222,7 +222,7 @@ Bot.prototype.commandAnswer = function (id, callback) {
 	} else {
 		menu.answer += 'no answer';
 		console.error('commandAnswer has empty answer');
-		self.goToQueue();
+		self.goToQueue(id);
 	}
 };
 
