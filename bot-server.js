@@ -79,13 +79,14 @@ Bot.prototype.init = function () {
 			console.log('bot error', getDT(), err.code);
 			self.bot.stop();
 			if (['ENOTFOUND'].indexOf(err.code) > -1) {
-				setTimeout(function () {
-					self.bot.start();
-					console.log('bot start', getDT());
-				}, 1000);
+				console.log('error here, code', err.code);
 			} else {
 				console.error('new error code', err.code);
 			}
+			setTimeout(function () {
+				self.bot.start();
+				console.log('bot start', getDT());
+			}, 1000);
 		})
 		.start();
 	console.log('bot start', getDT());
