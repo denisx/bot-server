@@ -31,6 +31,7 @@ var Bot = function(opts) {
 		resizeKeyboard: true
 	};
 	self.saveQueueParams = opts.saveQueueParams;
+	self.disable_web_page_preview = opts.disable_web_page_preview;
 };
 
 Bot.prototype.init = function () {
@@ -71,6 +72,11 @@ Bot.prototype.init = function () {
 		})
 		.on('stop', function (msg) { // local user event
 			console.log('bot /stop', msg);
+			delete self.menu[msg.from.id];
+		})
+		.on('restart', function (msg) { // local user event
+			console.log('bot /restart', msg);
+			delete self.menu[msg.from.id];
 		})
 		.on('start', function (msg) { // local user event
 			console.log('bot /start', msg);
@@ -217,7 +223,7 @@ Bot.prototype.commandAnswer = function (id, callback) {
 	} else {
 		menu.answer += 'no answer';
 		console.error('commandAnswer has empty answer');
-		self.goToQueue();
+		self.goToQueue(id);
 	}
 };
 
@@ -263,7 +269,8 @@ Bot.prototype.sendMessage = function (id, callback) {
 			reply_markup: {
 					keyboard: menu.keyboard,
 					resize_keyboard: self.vars.resizeKeyboard
-				}
+				},
+			disable_web_page_preview: (menu.disable_web_page_preview) ? true: (self.disable_web_page_preview)
 		}, function(err, msg) {
 			menu.lastMsg = msg;
 			if (!err && callback) {
