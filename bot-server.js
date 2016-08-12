@@ -253,7 +253,10 @@ Bot.prototype.sendClearMessage = function (opts) {
 		chat_id: opts.toId,
 		action: 'typing',
 		text: opts.userText || '',
-		parse_mode: 'HTML'
+		parse_mode: 'HTML',
+		reply_markup: {
+			keyboard: []
+		}
 	});
 };
 
