@@ -85,13 +85,14 @@ Bot.prototype.init = function () {
 			console.log('bot error', getDT(), err.code);
 			self.bot.stop();
 			if (['ENOTFOUND'].indexOf(err.code) > -1) {
-				setTimeout(function () {
-					self.bot.start();
-					console.log('bot start', getDT());
-				}, 1000);
+				console.log('error here, code', err.code);
 			} else {
 				console.error('new error code', err.code);
 			}
+			setTimeout(function () {
+				self.bot.start();
+				console.log('bot start', getDT());
+			}, 1000);
 		})
 		.start();
 	console.log('bot start', getDT());
@@ -134,7 +135,11 @@ Bot.prototype.onMessage = function (id) {
 			botFree = false;
 			self.parseText(id);
 		}
-		if (botFree && msg.photo) {
+		if (botFree && msg.location) {
+			botFree = false;
+			self.parseText(id);
+		}
+		if (botFree && msg.contact) {
 			botFree = false;
 			self.parseText(id);
 		}
@@ -222,7 +227,7 @@ Bot.prototype.commandAnswer = function (id, callback) {
 	} else {
 		menu.answer += 'no answer';
 		console.error('commandAnswer has empty answer');
-		self.goToQueue();
+		self.goToQueue(id);
 	}
 };
 
