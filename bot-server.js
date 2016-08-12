@@ -260,7 +260,7 @@ Bot.prototype.sendClearMessage = function (opts) {
 		text: opts.userText || '',
 		parse_mode: 'HTML',
 		reply_markup: {
-			keyboard: []
+			hide_keyboard: true
 		}
 	});
 };
