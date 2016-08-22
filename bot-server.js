@@ -1,8 +1,8 @@
 global.os = require('os');
 global.NodeBot = require('node-telegram-bot');
 
-var getDT = function () {
-	var now = new Date();
+var getDT = function (dt) {
+	var now = dt ? new Date(dt) : new Date();
 	return [
 		now.getFullYear(), '-',
 		('0' + (now.getMonth() + 1)).slice(-2), '-',
@@ -55,8 +55,8 @@ Bot.prototype.init = function () {
 			console.log();
 			console.log(getDT());
 			console.log('bot new message', msg);
-			var id = (msg && msg.from) ? msg.from.id : null;
-			if (!id) { return; }
+			var id = self.getId(msg);
+			if (!id || id == '/') { return; }
 			self.menu[id] = self.menu[id] ||
 				{
 					path: '/',
@@ -65,18 +65,18 @@ Bot.prototype.init = function () {
 					onWork: false
 				};
 			self.menu[id].lastPing = new Date();
-			self.menu[id].texts = texts[self.menu[id].lang];
+			self.menu[id].texts = self.texts[self.menu[id].lang];
 			self.queue[id] = self.queue[id] || [];
 			self.queue[id].push(msg);
 			self.onMessage(id);
 		})
 		.on('stop', function (msg) { // local user event
 			console.log('bot /stop', msg);
-			delete self.menu[msg.from.id];
+			delete self.menu[self.getId(msg)];
 		})
 		.on('restart', function (msg) { // local user event
 			console.log('bot /restart', msg);
-			delete self.menu[msg.from.id];
+			delete self.menu[self.getId(msg)];
 		})
 		.on('start', function (msg) { // local user event
 			console.log('bot /start', msg);
@@ -85,9 +85,9 @@ Bot.prototype.init = function () {
 			console.log('bot error', getDT(), err.code);
 			self.bot.stop();
 			if (['ENOTFOUND'].indexOf(err.code) > -1) {
-				console.log('error here, code', err.code);
+				console.log('error here, code=', err.code);
 			} else {
-				console.error('new error code', err.code);
+				console.error('new error code=', err.code);
 			}
 			setTimeout(function () {
 				self.bot.start();
@@ -96,7 +96,15 @@ Bot.prototype.init = function () {
 		})
 		.start();
 	console.log('bot start', getDT());
+	self.clearSessions();
+	
 	return this;
+};
+
+Bot.prototype.getId = function (msg) {
+	var fromId = (msg && msg.from) ? msg.from.id : '';
+	var chatId = (msg && msg.chat) ? msg.chat.id : '';
+	return chatId + '/' + fromId;
 };
 
 Bot.prototype.clearSessions = function () {
@@ -105,13 +113,25 @@ Bot.prototype.clearSessions = function () {
 	var sessionMinutes = 15;
 	Object.keys(self.menu).forEach(function (id) {
 		var menu = self.menu[id];
-		console.log('check last ping', id, getDT(menu.lastPing - 1), ' || ', 
-			getDT((menu.lastPing - 1) + sessionMinutes * 60 * 1000), ' || ', getDT(now - 1));
 		if ((menu.lastPing - 1) + sessionMinutes * 60 * 1000 < now - 1) {
-			console.log('clear', id, getDT(menu.lastPing - 1), getDT(now - 1));
+			menu.path = '/';
+			menu.keyboardPath = '/';
+			var opts = {
+				id: id,
+				userText: 'Session end. Go to Start.',
+				disable_notification: true,
+				reply_markup: {
+					keyboard: self.getKeyboard(id),
+					resize_keyboard: true
+				}
+			};
+			self.sendClearMessage(opts);
 			delete self.menu[id];
 		}
 	});
+	setTimeout(function () {
+		self.clearSessions();
+	}, 60 * 1000);
 };
 
 Bot.prototype.stop = function () {
@@ -157,7 +177,7 @@ Bot.prototype.getKeyboard = function (id) {
 	var self = this;
 	var menu = self.menu[id];
 	var keyboard = [];
-	if (!self.texts.botMenu[menu.keyboardPath]) {
+	if (!menu.texts || !self.texts.botMenu[menu.keyboardPath]) {
 		console.error('no menu for', menu.keyboardPath);
 		return keyboard;
 	}
@@ -235,11 +255,12 @@ Bot.prototype.goToQueue = function (id) {
 	var self = this;
 	var menu = self.menu[id];
 	var tmp = {
-		path: menu.path,
-		lastPing: menu.lastPing,
 		onWork: false,
-		keyboardPath: menu.keyboardPath,
 		lang: menu.lang,
+		path: menu.path,
+		texts: menu.texts,
+		lastPing: menu.lastPing,
+		keyboardPath: menu.keyboardPath,
 		saveQueueParams: menu.saveQueueParams
 	};
 	Object.keys(self.saveQueueParams).forEach(function (param) {
@@ -251,37 +272,58 @@ Bot.prototype.goToQueue = function (id) {
 
 Bot.prototype.sendClearMessage = function (opts) {
 	var self = this;
-	if (opts.id == opts.toId) {
-		opts.userText += opts.himselfText;
+	var menu = self.menu[opts.id];
+	var fromId = opts.fromId || ((menu && menu.msg) ? menu.msg.from.id : '');
+	var chatId = opts.chatId || ((menu && menu.msg) ? menu.msg.chat.id : '');
+	if (parseInt(chatId)) {
+		console.error('chatId=', chatId);
+		console.error('fromId=', fromId);
+		console.error('sendClearMessage', 'chatId is empty');
+		return;
 	}
-	self.bot.sendMessage({
-		chat_id: opts.toId,
+	// if (fromId == chatId) {
+	// 	opts.userText += opts.himselfText || 'himself';
+	// }
+	var set = {
+		chat_id: chatId,
 		action: 'typing',
-		text: opts.userText || '',
+		text: opts.userText || ' ',
 		parse_mode: 'HTML',
-		reply_markup: {
-			hide_keyboard: true
-		}
-	});
+		disable_notification: opts.disable_notification || false,
+		reply_markup: opts.reply_markup || {}
+	};
+	if (fromId != chatId && menu.msg && menu.msg.message_id) {
+		set.reply_to_message_id = menu.msg.message_id;
+	}
+	self.bot.sendMessage(set);
 };
 
 Bot.prototype.sendMessage = function (id, callback) {
 	var self = this;
 	var menu = self.menu[id];
-	self.bot.sendMessage({
-			chat_id: menu.msg.chat.id,
-			action: 'typing',
-			text: menu.answer || menu.texts.botError,
-			parse_mode: 'HTML',
-			reply_markup: {
-					keyboard: menu.keyboard,
-					resize_keyboard: self.vars.resizeKeyboard
-				},
-			disable_web_page_preview: (menu.disable_web_page_preview) ? true: (self.disable_web_page_preview)
-		}, function(err, msg) {
+	if (!menu.msg.chat.id) {
+		console.error('err', 'empty chat.id', id, menu.msg);
+		return;
+	}
+	var set = {
+		chat_id: menu.msg.chat.id,
+		action: 'typing',
+		text: menu.answer || menu.texts.botError,
+		parse_mode: 'HTML',
+		reply_markup: {
+			keyboard: menu.keyboard,
+			resize_keyboard: self.vars.resizeKeyboard
+		},
+		disable_web_page_preview: (menu.disable_web_page_preview) ? true: (self.disable_web_page_preview)
+	};
+	if (menu.msg.chat.id != menu.msg.from.id) {
+		set.reply_to_message_id = menu.msg.message_id;
+	}
+	self.bot.sendMessage(set,
+		function(err, msg) {
 			menu.lastMsg = msg;
 			if (!err && callback) {
-				console.log(1, msg.message_id);
+				// console.log(1, msg.message_id);
 				callback.call(self, id, msg.message_id);
 			}
 	});
