@@ -126,8 +126,8 @@ Bot.prototype.clearSessions = function () {
 			menu.path = '/';
 			menu.keyboardPath = '/';
 			var opts = {
-				id: id,
-				userText: 'Session end. Go to Start.',
+				chatId: id.replace(/^(\d+)\/.+$/, '$1'),
+				userText: '\uD83C\uDFE0',
 				disable_notification: true,
 				reply_markup: {
 					keyboard: self.getKeyboard(id),
