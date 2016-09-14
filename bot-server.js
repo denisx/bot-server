@@ -1,5 +1,6 @@
 /**
  * @author denisx | Denis Khripkov <bot-server@denisx.ru>
+ * @version 1.0.10
  */
 
 global.os = require('os');
