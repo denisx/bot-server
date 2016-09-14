@@ -1,3 +1,7 @@
+/**
+ * @author denisx | Denis Khripkov <bot-server@denisx.ru>
+ */
+
 global.os = require('os');
 global.NodeBot = require('node-telegram-bot');
 
@@ -101,6 +105,11 @@ Bot.prototype.init = function () {
 	return this;
 };
 
+/**
+ * @param {Object} msg
+ * @param {Object} msg.from
+ * @param {Object} msg.chat
+ */
 Bot.prototype.getId = function (msg) {
 	var fromId = (msg && msg.from) ? msg.from.id : '';
 	var chatId = (msg && msg.chat) ? msg.chat.id : '';
@@ -175,6 +184,12 @@ Bot.prototype.onMessage = function (id) {
 
 Bot.prototype.getKeyboard = function (id) {
 	var self = this;
+	/**
+	 * @param {Object} menu
+	 * @param {Object} menu.requestLocation
+	 * @param {Object} menu.requestContact
+	 * @param {Object} menu.keyboardAddOn
+	 */
 	var menu = self.menu[id];
 	var keyboard = [];
 	if (!menu.texts || !self.texts.botMenu[menu.keyboardPath]) {
@@ -270,12 +285,22 @@ Bot.prototype.goToQueue = function (id) {
 	self.onMessage(id);
 };
 
+/**
+ * @param {Object} opts
+ * @param {Object} opts.fromId
+ * @param {Object} opts.chatId
+ */
 Bot.prototype.sendClearMessage = function (opts) {
 	var self = this;
+	/**
+	 * @param {Object} menu
+	 * @param {Object} menu.msg
+	 * @param {number} menu.msg.message_id
+	 */
 	var menu = self.menu[opts.id];
 	var fromId = opts.fromId || ((menu && menu.msg) ? menu.msg.from.id : '');
 	var chatId = opts.chatId || ((menu && menu.msg) ? menu.msg.chat.id : '');
-	if (parseInt(chatId)) {
+	if (!parseInt(chatId)) {
 		console.error('chatId=', chatId);
 		console.error('fromId=', fromId);
 		console.error('sendClearMessage', 'chatId is empty');
@@ -300,6 +325,10 @@ Bot.prototype.sendClearMessage = function (opts) {
 
 Bot.prototype.sendMessage = function (id, callback) {
 	var self = this;
+	/**
+	 * @param {Object} menu
+	 * @param {boolean} menu.noNextQueue
+	 */
 	var menu = self.menu[id];
 	if (!menu.msg.chat.id) {
 		console.error('err', 'empty chat.id', id, menu.msg);
