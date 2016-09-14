@@ -294,6 +294,7 @@ Bot.prototype.sendClearMessage = function (opts) {
 	var self = this;
 	/**
 	 * @param {Object} menu
+	 * @param {number} menu.id
 	 * @param {Object} menu.msg
 	 * @param {number} menu.msg.message_id
 	 */
@@ -317,7 +318,7 @@ Bot.prototype.sendClearMessage = function (opts) {
 		disable_notification: opts.disable_notification || false,
 		reply_markup: opts.reply_markup || {}
 	};
-	if (fromId != chatId && menu.msg && menu.msg.message_id) {
+	if (fromId != chatId && menu && menu.msg && menu.msg.message_id) {
 		set.reply_to_message_id = menu.msg.message_id;
 	}
 	self.bot.sendMessage(set);
