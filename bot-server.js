@@ -290,7 +290,7 @@ Bot.prototype.goToQueue = function (id) {
  * @param {Object} opts.fromId
  * @param {Object} opts.chatId
  */
-Bot.prototype.sendClearMessage = function (opts) {
+Bot.prototype.sendClearMessage = function (opts, callback) {
 	var self = this;
 	/**
 	 * @param {Object} menu
@@ -321,7 +321,7 @@ Bot.prototype.sendClearMessage = function (opts) {
 	if (fromId != chatId && menu && menu.msg && menu.msg.message_id) {
 		set.reply_to_message_id = menu.msg.message_id;
 	}
-	self.bot.sendMessage(set);
+	self.bot.sendMessage(set, callback);
 };
 
 Bot.prototype.sendMessage = function (id, callback) {
