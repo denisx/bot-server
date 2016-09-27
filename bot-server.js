@@ -164,7 +164,7 @@ Bot.prototype.onMessage = function (id) {
 			botFree = false;
 			self.parseText(id);
 		}
-		if (botFree && msg.location) {
+		if (botFree && msg.photo) {
 			botFree = false;
 			self.parseText(id);
 		}
