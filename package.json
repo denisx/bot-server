@@ -6,7 +6,7 @@
 	"main": "bot-server.js",
 	"dependencies": {
 		"os": "^0.1.1",
-		"node-telegram-bot": "depoio/node-telegram-bot"
+		"node-telegram-bot": "denisx/node-telegram-bot"
 	},
 	"repository": {
 		"type": "git",
