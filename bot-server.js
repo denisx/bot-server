@@ -125,10 +125,9 @@ Bot.prototype.clearSessions = function () {
 		if ((menu.lastPing - 1) + sessionMinutes * 60 * 1000 < now - 1) {
 			menu.path = '/';
 			menu.keyboardPath = '/';
-			console.log(menu.lastMsg);
 			var opts = {
 				chat_id: id.replace(/^(\d+)\/.+$/, '$1'),
-				message_id: menu.lastMsg.message_id,
+				message_id: menu.apiCallback.msg.message_id,
 				// userText: '\uD83C\uDFE0',
 				// disable_notification: true,
 				reply_markup: {
@@ -376,7 +375,6 @@ Bot.prototype.apiCallback = function (id, err, msg) {
 		err: err,
 		msg: msg
 	};
-	console.log(888, id, self.menu[id].apiCallback);
 };
 
 Bot.prototype.on = function (menu, callback) {
