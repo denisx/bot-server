@@ -119,22 +119,25 @@ Bot.prototype.getId = function (msg) {
 Bot.prototype.clearSessions = function () {
 	var self = this;
 	var now = new Date();
-	var sessionMinutes = 15;
+	var sessionMinutes = 1;
 	Object.keys(self.menu).forEach(function (id) {
 		var menu = self.menu[id];
 		if ((menu.lastPing - 1) + sessionMinutes * 60 * 1000 < now - 1) {
 			menu.path = '/';
 			menu.keyboardPath = '/';
+			console.log(menu.lastMsg);
 			var opts = {
-				chatId: id.replace(/^(\d+)\/.+$/, '$1'),
-				userText: '\uD83C\uDFE0',
-				disable_notification: true,
+				chat_id: id.replace(/^(\d+)\/.+$/, '$1'),
+				message_id: menu.lastMsg.message_id,
+				// userText: '\uD83C\uDFE0',
+				// disable_notification: true,
 				reply_markup: {
 					keyboard: self.getKeyboard(id),
 					resize_keyboard: true
 				}
 			};
-			self.sendClearMessage(opts);
+			// self.sendClearMessage(opts);
+			self.bot.editMessageReplyMarkup(opts, self.apiCallback);
 			delete self.menu[id];
 		}
 	});
@@ -321,7 +324,10 @@ Bot.prototype.sendClearMessage = function (opts, callback) {
 	if (fromId != chatId && menu && menu.msg && menu.msg.message_id) {
 		set.reply_to_message_id = menu.msg.message_id;
 	}
-	self.bot.sendMessage(set, callback);
+	self.bot.sendMessage(set, function (err, msg) {
+		self.apiCallback(opts.id, err, msg);
+		callback.call(self);
+	});
 };
 
 Bot.prototype.sendMessage = function (id, callback) {
@@ -351,10 +357,10 @@ Bot.prototype.sendMessage = function (id, callback) {
 	}
 	self.bot.sendMessage(set,
 		function(err, msg) {
-			menu.lastMsg = msg;
-			if (!err && callback) {
-				// console.log(1, msg.message_id);
-				callback.call(self, id, msg.message_id);
+			self.apiCallback(id, err, msg);
+			// menu.lastMsg = msg;
+			if (callback) {
+				callback.call(self, id);
 			}
 	});
 	if ( menu.noNextQueue ) {
@@ -362,6 +368,15 @@ Bot.prototype.sendMessage = function (id, callback) {
 	} else {
 		self.goToQueue(id);
 	}
+};
+
+Bot.prototype.apiCallback = function (id, err, msg) {
+	var self = this;
+	self.menu[id].apiCallback = {
+		err: err,
+		msg: msg
+	};
+	console.log(888, id, self.menu[id].apiCallback);
 };
 
 Bot.prototype.on = function (menu, callback) {
