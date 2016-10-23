@@ -38,7 +38,7 @@ var Bot = function(opts) {
 	self.disable_web_page_preview = opts.disable_web_page_preview;
 };
 
-Bot.prototype.init = function () {
+Bot.prototype.init = function (func) {
 	var self = this;
 	var origin = os.hostname();
 	console.log('origin=', origin);
@@ -52,6 +52,9 @@ Bot.prototype.init = function () {
 	self.botStoped = true;
 	if (self.settingsMachine.botan) {
 		self.bot.enableAnalytics(self.settingsMachine.botan.token);
+	}
+	if (func && typeof func == 'function') {
+		func.call(self);
 	}
 	self.bot
 		/** @param {Object} msg.from */
