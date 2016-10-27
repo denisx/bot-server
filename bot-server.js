@@ -46,8 +46,10 @@ Bot.prototype.init = function (func) {
 	self.bot = new NodeBot({
 		token: self.settingsMachine.bot.token
 	});
+	self.defMenuPath = self.settingsMachine.defMenuPath || '/';
 	self.menu = {};
 	self.queue = {};
+	self.onStack = {};
 	self.dev = self.settingsMachine.bot.dev || false;
 	self.botStoped = true;
 	if (self.settingsMachine.botan) {
@@ -63,11 +65,11 @@ Bot.prototype.init = function (func) {
 			console.log(getDT());
 			console.log('bot new message', msg);
 			var id = self.getId(msg);
-			if (!id || id == '/') { return; }
+			if (!id || id == self.defMenuPath) { return; }
 			self.menu[id] = self.menu[id] ||
 				{
-					path: '/',
-					keyboardPath: '/',
+					path: self.defMenuPath,
+					keyboardPath: self.defMenuPath,
 					lang: self.defaultLang,
 					onWork: false
 				};
@@ -122,24 +124,23 @@ Bot.prototype.getId = function (msg) {
 Bot.prototype.clearSessions = function () {
 	var self = this;
 	var now = new Date();
-	var sessionMinutes = 1;
+	var sessionMinutes = 15;
 	Object.keys(self.menu).forEach(function (id) {
 		var menu = self.menu[id];
 		if ((menu.lastPing - 1) + sessionMinutes * 60 * 1000 < now - 1) {
-			menu.path = '/';
-			menu.keyboardPath = '/';
-			var opts = {
-				chat_id: id.replace(/^(\d+)\/.+$/, '$1'),
-				message_id: menu.apiCallback.msg.message_id,
-				// userText: '\uD83C\uDFE0',
-				// disable_notification: true,
-				reply_markup: {
-					keyboard: self.getKeyboard(id),
-					resize_keyboard: true
-				}
-			};
-			// self.sendClearMessage(opts);
-			self.bot.editMessageReplyMarkup(opts, self.apiCallback);
+			// menu.path = self.defMenuPath;
+			// menu.keyboardPath = self.defMenuPath;
+			// var opts = { //
+			// 	chat_id: (menu.apiCallback) ? menu.apiCallback.msg.chat.id : 0,
+			// 	message_id: (menu.apiCallback) ? menu.apiCallback.msg.message_id : 0,
+			// 	reply_markup: {
+			// 		keyboard: self.getKeyboard(id),
+			// 		resize_keyboard: true
+			// 	}
+			// };
+			// self.bot.editMessageReplyMarkup(opts, function (err, msg) {
+			// 	self.apiCallback(id, err, msg);
+			// });
 			delete self.menu[id];
 		}
 	});
@@ -292,8 +293,10 @@ Bot.prototype.goToQueue = function (id) {
 
 /**
  * @param {Object} opts
- * @param {Object} opts.fromId
- * @param {Object} opts.chatId
+ * @param {string} opts.id
+ * @param {int} opts.fromId
+ * @param {int} opts.chatId
+ * @param {function} callback
  */
 Bot.prototype.sendClearMessage = function (opts, callback) {
 	var self = this;
@@ -328,7 +331,9 @@ Bot.prototype.sendClearMessage = function (opts, callback) {
 	}
 	self.bot.sendMessage(set, function (err, msg) {
 		self.apiCallback(opts.id, err, msg);
-		callback.call(self);
+		if (callback) {
+			callback.call(self);
+		}
 	});
 };
 
@@ -374,15 +379,24 @@ Bot.prototype.sendMessage = function (id, callback) {
 
 Bot.prototype.apiCallback = function (id, err, msg) {
 	var self = this;
-	self.menu[id].apiCallback = {
-		err: err,
-		msg: msg
-	};
+	// console.log('apiCallback', 0, id);
+	// console.log('apiCallback', 1, err);
+	// console.log('apiCallback', 2, msg);
+
+	if (! err && id && self.menu) {
+		self.menu[id].apiCallback = {
+			err: err,
+			msg: msg
+		};
+	} else {
+		if (err) {
+			console.error(getDT(), 'apiCallback', id, err);
+		}
+	}
 };
 
 Bot.prototype.on = function (menu, callback) {
 	var self = this;
-	self.onStack = self.onStack || {};
 	var on = self.onStack;
 	if (typeof callback == 'function') { // init on
 		on[menu] = callback;
