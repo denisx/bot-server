@@ -4,6 +4,8 @@
 
 global.os = require('os');
 global.NodeBot = require('node-telegram-bot');
+// global.NodeBot = require('../node-telegram-bot/lib/Bot.js');
+
 
 var getDT = function (dt) {
 	var now = dt ? new Date(dt) : new Date();
@@ -32,7 +34,9 @@ var Bot = function(opts) {
 	self.saveQueueParams = opts.saveQueueParams;
 	self.vars = {
 		keyboard: [], // max 4 * 12 (h*w); you can make more by height, but scroll'll be turned on
-		resizeKeyboard: true
+		keyboardInline: [], // max 4 * 12 (h*w); you can make more by height, but scroll'll be turned on
+		resizeKeyboard: true,
+		resizeKeyboardInline: true
 	};
 	self.saveQueueParams = opts.saveQueueParams;
 	self.disable_web_page_preview = opts.disable_web_page_preview;
@@ -46,8 +50,9 @@ Bot.prototype.init = function (func) {
 	self.bot = new NodeBot({
 		token: self.settingsMachine.bot.token
 	});
-	self.defMenuPath = self.settingsMachine.defMenuPath || '/';
+	self.defMenuPath = self.settingsMachine.defMenuPath || 'start';
 	self.menu = {};
+	self.apiCallbackData = {};
 	self.queue = {};
 	self.onStack = {};
 	self.dev = self.settingsMachine.bot.dev || false;
@@ -61,23 +66,10 @@ Bot.prototype.init = function (func) {
 	self.bot
 		/** @param {Object} msg.from */
 		.on('message', function(msg) { // local user event
-			console.log();
-			console.log(getDT());
-			console.log('bot new message', msg);
-			var id = self.getId(msg);
-			if (!id || id == self.defMenuPath) { return; }
-			self.menu[id] = self.menu[id] ||
-				{
-					path: self.defMenuPath,
-					keyboardPath: self.defMenuPath,
-					lang: self.defaultLang,
-					onWork: false
-				};
-			self.menu[id].lastPing = new Date();
-			self.menu[id].texts = self.texts[self.menu[id].lang];
-			self.queue[id] = self.queue[id] || [];
-			self.queue[id].push(msg);
-			self.onMessage(id);
+			self.getAPIOn('message', msg);
+		})
+		.on('callback_query', function(msg) { // local user event
+			self.getAPIOn('callback_query', msg);
 		})
 		.on('stop', function (msg) { // local user event
 			console.log('bot /stop', msg);
@@ -110,6 +102,37 @@ Bot.prototype.init = function (func) {
 	return this;
 };
 
+Bot.prototype.getAPIOn = function (method, _msg) {
+	var self = this;
+	console.log();
+	console.log(getDT());
+	var msg;
+	if (method == 'message') {
+		msg = _msg;
+	}
+	if (method == 'callback_query') {
+		msg = _msg.message;
+		msg.__callback_query = _msg;
+		msg.text = msg.__callback_query.data;
+	}
+	console.log('bot new ' + method, msg);
+	var id = self.getId(msg);
+	if (!id || id == self.defMenuPath) { return; }
+	self.apiCallbackData[id] = self.apiCallbackData[id] || {};
+	self.menu[id] = self.menu[id] ||
+		{
+			path: self.defMenuPath,
+			keyboardPath: self.defMenuPath,
+			keyboardInlinePath: self.defMenuPath,
+			lang: self.defaultLang,
+			onWork: false
+		};
+	self.menu[id].lastPing = new Date();
+	self.menu[id].texts = self.texts[self.menu[id].lang];
+	self.queue[id] = self.queue[id] || [];
+	self.queue[id].push(msg);
+	self.onMessage(id);
+};
 /**
  * @param {Object} msg
  * @param {Object} msg.from
@@ -142,6 +165,7 @@ Bot.prototype.clearSessions = function () {
 			// 	self.apiCallback(id, err, msg);
 			// });
 			delete self.menu[id];
+			delete self.apiCallbackData[id];
 		}
 	});
 	setTimeout(function () {
@@ -154,76 +178,106 @@ Bot.prototype.stop = function () {
 	self.bot.stop();
 };
 
+/**
+ * @func onMessage
+ * @param id
+ */
 Bot.prototype.onMessage = function (id) {
 	var self = this;
 	var menu = self.menu[id];
 	if (!menu.onWork && self.queue[id].length) {
 		var msg = self.queue[id].shift();
 		menu.onWork = true;
+		/**
+		 * @param {Object} msg
+		 * @param {Object} msg.contact
+		 */
 		menu.msg = msg;
-		var botFree = true;
-		if (botFree && msg.text) {
-			botFree = false;
-			self.parseText(id);
+		self.bot.sendChatAction({
+			chat_id: menu.msg.chat.id,
+			action: 'typing'
+		}, function (err, msg) {
+			self.apiCallback(id, err, msg);
+		});
+
+		if (msg.text) {
+			return self.parseText(id);
 		}
-		if (botFree && msg.location) {
-			botFree = false;
-			self.parseText(id);
+		if (msg.location) {
+			return self.parseText(id);
 		}
-		if (botFree && msg.photo) {
-			botFree = false;
-			self.parseText(id);
+		if (msg.photo) {
+			return self.parseText(id);
 		}
-		if (botFree && msg.contact) {
-			botFree = false;
-			self.parseText(id);
+		if (msg.contact) {
+			return self.parseText(id);
 		}
-		if (botFree) {
-			console.error('error', 'botFree');
-			botFree = false;
-			menu.answer = 'no answer :|';
-			self.commandAnswer(id);
-			// self.parseText(id);
-		}
+		console.error('error', 'botFree');
+		menu.answer = 'no answer :|';
+		self.commandAnswer(id);
 	}
 };
 
-Bot.prototype.getKeyboard = function (id) {
+Bot.prototype.getKeyboard = function (id, isInline) {
 	var self = this;
 	/**
 	 * @param {Object} menu
 	 * @param {Object} menu.requestLocation
 	 * @param {Object} menu.requestContact
 	 * @param {Object} menu.keyboardAddOn
+	 * @param {Object} menu.keyboardInlineAddOn
 	 */
+	var path = (isInline) ? 'botMenuInline': 'botMenu';
+	var keyboardPath = (isInline) ? 'keyboardInlinePath': 'keyboardPath';
 	var menu = self.menu[id];
 	var keyboard = [];
-	if (!menu.texts || !self.texts.botMenu[menu.keyboardPath]) {
-		console.error('no menu for', menu.keyboardPath);
+	if (!menu.texts ||
+		!menu[keyboardPath] ||
+		!self.texts[path] ||
+		!self.texts[path][menu[keyboardPath]]) {
+		console.info('no menu for', menu[keyboardPath], isInline);
 		return keyboard;
 	}
-	self.texts.botMenu[menu.keyboardPath].forEach(function(menuLine, i) {
+	/**
+	 * @param menu.texts.acceptCommands
+	 */
+	self.texts[path][menu[keyboardPath]].forEach(function(menuLine, i) {
 		keyboard[i] = [];
 		menuLine.forEach(function(menuItem) {
 			var newKeyPiece = menu.texts.acceptCommands[menuItem];
 			if (newKeyPiece) {
-				keyboard[i].push(newKeyPiece);
+				if (isInline) {
+					keyboard[i].push({
+						text: newKeyPiece,
+						callback_data: menuItem
+					});
+				} else {
+					keyboard[i].push(newKeyPiece);
+				}
 			} else {
 				console.error('no lang text for', menuItem);
 			}
 		});
 	});
-	if (menu.requestLocation) {
-		delete menu.requestLocation;
-		keyboard.unshift([{text: menu.texts.waitForGeoButtonText, request_location: true}]);
-	}
-	if (menu.requestContact) {
-		delete menu.requestContact;
-		keyboard.unshift([{text: menu.texts.waitForContactButtonText, request_contact: true}]);
-	}
-	if (menu.keyboardAddOn) {
-		keyboard.unshift(menu.keyboardAddOn);
-		delete menu.keyboardAddOn;
+
+	if (isInline) {
+		if (menu.keyboardInlineAddOn) {
+			keyboard.unshift(menu.keyboardInlineAddOn);
+			delete menu.keyboardInlineAddOn;
+		}
+	} else {
+		if (menu.requestLocation) {
+			delete menu.requestLocation;
+			keyboard.unshift([{text: menu.texts.waitForGeoButtonText, request_location: true}]);
+		}
+		if (menu.requestContact) {
+			delete menu.requestContact;
+			keyboard.unshift([{text: menu.texts.waitForContactButtonText, request_contact: true}]);
+		}
+		if (menu.keyboardAddOn) {
+			keyboard.unshift(menu.keyboardAddOn);
+			delete menu.keyboardAddOn;
+		}
 	}
 	return keyboard;
 };
@@ -259,12 +313,16 @@ Bot.prototype.parseText = function (id) {
 	self.on(menu.path, id);
 };
 
-Bot.prototype.commandAnswer = function (id, callback) {
+Bot.prototype.commandAnswer = function (id) {
 	var self = this;
 	var menu = self.menu[id];
 	if (menu.answer && menu.answer.length && menu.answer != null) {
 		menu.keyboard = self.getKeyboard(id);
-		self.sendMessage(id, callback);
+		menu.keyboardInline = self.getKeyboard(id, true);
+		if (!menu.keyboard.length && !menu.keyboardInline.length) {
+			console.error(getDT(), 'no keyboards', menu.keyboard.length, menu.keyboardInline.length);
+		}
+		self.sendMessage(id);
 	} else {
 		menu.answer += 'no answer';
 		console.error('commandAnswer has empty answer');
@@ -282,6 +340,7 @@ Bot.prototype.goToQueue = function (id) {
 		texts: menu.texts,
 		lastPing: menu.lastPing,
 		keyboardPath: menu.keyboardPath,
+		keyboardInlinePath: menu.keyboardInlinePath,
 		saveQueueParams: menu.saveQueueParams
 	};
 	Object.keys(self.saveQueueParams).forEach(function (param) {
@@ -350,26 +409,53 @@ Bot.prototype.sendMessage = function (id, callback) {
 	}
 	var set = {
 		chat_id: menu.msg.chat.id,
-		action: 'typing',
+		// action: 'typing',
 		text: menu.answer || menu.texts.botError,
 		parse_mode: 'HTML',
-		reply_markup: {
-			keyboard: menu.keyboard,
-			resize_keyboard: self.vars.resizeKeyboard
-		},
-		disable_web_page_preview: (menu.disable_web_page_preview) ? true: (self.disable_web_page_preview)
+		disable_web_page_preview: (menu.disable_web_page_preview) ? true: (self.disable_web_page_preview),
+		replyMarkup: {
+
+		}
 	};
 	if (menu.msg.chat.id != menu.msg.from.id) {
 		set.reply_to_message_id = menu.msg.message_id;
 	}
-	self.bot.sendMessage(set,
-		function(err, msg) {
+
+	if (menu.keyboardInline.length) {
+		set.reply_markup = {
+			inline_keyboard: menu.keyboardInline
+		};
+		if (menu.keyboard.length) {
+			set.text = '...';
+		}
+		self.bot.sendMessage(set, function (err, msg) {
+			if (err) { err.ss1 = menu.keyboardInline; }
 			self.apiCallback(id, err, msg);
-			// menu.lastMsg = msg;
-			if (callback) {
-				callback.call(self, id);
+			if (!menu.keyboard.length) {
+				if (callback) {
+					callback.call(self, id);
+				}
 			}
-	});
+		})
+	}
+
+	if (menu.keyboard.length) {
+		set.reply_markup = {
+			resize_keyboard: self.vars.resizeKeyboard,
+			keyboard: menu.keyboard
+		};
+		set.text = menu.answer || menu.texts.botError;
+		self.bot.sendMessage(set,
+			function (err, msg) {
+				if (err ) { err.ss2 = menu.keyboard; }
+				self.apiCallback(id, err, msg);
+				// menu.lastMsg = msg;
+				if (callback) {
+					callback.call(self, id);
+				}
+			});
+	}
+
 	if ( menu.noNextQueue ) {
 		delete menu.noNextQueue;
 	} else {
@@ -379,12 +465,12 @@ Bot.prototype.sendMessage = function (id, callback) {
 
 Bot.prototype.apiCallback = function (id, err, msg) {
 	var self = this;
-	// console.log('apiCallback', 0, id);
-	// console.log('apiCallback', 1, err);
-	// console.log('apiCallback', 2, msg);
-
-	if (! err && id && self.menu) {
-		self.menu[id].apiCallback = {
+	var apiCb = self.apiCallbackData[id] || {};
+	if (id) {
+		if (err) {
+			console.log('apiCallback', id, 'err', err);
+		}
+		apiCb = {
 			err: err,
 			msg: msg
 		};
