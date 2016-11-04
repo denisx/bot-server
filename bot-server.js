@@ -66,21 +66,23 @@ Bot.prototype.init = function (func) {
 	self.bot
 		/** @param {Object} msg.from */
 		.on('message', function(msg) { // local user event
+			self.logMsg('bot on message', msg);
 			self.getAPIOn('message', msg);
 		})
 		.on('callback_query', function(msg) { // local user event
+			self.logMsg('bot on callback_query', msg);
 			self.getAPIOn('callback_query', msg);
 		})
 		.on('stop', function (msg) { // local user event
-			console.log('bot /stop', msg);
+			self.logMsg('bot /stop', msg);
 			delete self.menu[self.getId(msg)];
 		})
 		.on('restart', function (msg) { // local user event
-			console.log('bot /restart', msg);
+			self.logMsg('bot /restart', msg);
 			delete self.menu[self.getId(msg)];
 		})
 		.on('start', function (msg) { // local user event
-			console.log('bot /start', msg);
+			self.logMsg('bot /start', msg);
 		})
 		.on('error', function (err) { // global user event
 			console.log('bot error', getDT(), err.code);
@@ -102,10 +104,16 @@ Bot.prototype.init = function (func) {
 	return this;
 };
 
+Bot.prototype.logMsg = function (text, msg) {
+	console.log();
+	console.log(getDT(), text);
+	Object.keys(msg).forEach(function (key) {
+		console.log(key, JSON.stringify(msg[key]));
+	});
+};
+
 Bot.prototype.getAPIOn = function (method, _msg) {
 	var self = this;
-	console.log();
-	console.log(getDT());
 	var msg;
 	if (method == 'message') {
 		msg = _msg;
@@ -115,7 +123,7 @@ Bot.prototype.getAPIOn = function (method, _msg) {
 		msg.__callback_query = _msg;
 		msg.text = msg.__callback_query.data;
 	}
-	console.log('bot new ' + method, msg);
+	// console.log('bot new ' + method, msg);
 	var id = self.getId(msg);
 	if (!id || id == self.defMenuPath) { return; }
 	self.apiCallbackData[id] = self.apiCallbackData[id] || {};
