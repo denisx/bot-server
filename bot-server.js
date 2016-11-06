@@ -373,7 +373,7 @@ Bot.prototype.sendClearMessage = function (opts, callback) {
 	 * @param {Object} menu.msg
 	 * @param {number} menu.msg.message_id
 	 */
-	var menu = self.menu[opts.id];
+	var menu = self.menu[opts.id] || {};
 	var fromId = opts.fromId || ((menu && menu.msg) ? menu.msg.from.id : '');
 	var chatId = opts.chatId || ((menu && menu.msg) ? menu.msg.chat.id : '');
 	if (!parseInt(chatId)) {
@@ -391,7 +391,8 @@ Bot.prototype.sendClearMessage = function (opts, callback) {
 		text: opts.userText || ' ',
 		parse_mode: 'HTML',
 		disable_notification: opts.disable_notification || false,
-		reply_markup: opts.reply_markup || {}
+		reply_markup: opts.reply_markup || {},
+		disable_web_page_preview: opts.disable_web_page_preview || true
 	};
 	if (fromId != chatId && menu && menu.msg && menu.msg.message_id) {
 		set.reply_to_message_id = menu.msg.message_id;
