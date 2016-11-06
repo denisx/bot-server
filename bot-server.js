@@ -399,7 +399,7 @@ Bot.prototype.sendClearMessage = function (opts, callback) {
 	}
 	self.bot.sendMessage(set, function (err, msg) {
 		self.apiCallback(opts.id, err, msg);
-		if (callback) {
+		if (callback && typeof callback == 'function') {
 			callback.call(self);
 		}
 	});
@@ -474,18 +474,18 @@ Bot.prototype.sendMessage = function (id, callback) {
 
 Bot.prototype.apiCallback = function (id, err, msg) {
 	var self = this;
-	var apiCb = self.apiCallbackData[id] || {};
 	if (id) {
+		self.apiCallbackData[id] = self.apiCallbackData[id] || {};
 		if (err) {
-			console.log('apiCallback', id, 'err', err);
+			// console.log('apiCallback', id, 'err', err);
 		}
-		apiCb = {
+		self.apiCallbackData[id] = {
 			err: err,
 			msg: msg
 		};
 	} else {
 		if (err) {
-			console.error(getDT(), 'apiCallback', id, err);
+			// console.error(getDT(), 'apiCallback', id, err);
 		}
 	}
 };
