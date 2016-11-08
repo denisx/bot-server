@@ -400,7 +400,7 @@ Bot.prototype.sendClearMessage = function (opts, callback) {
 	self.bot.sendMessage(set, function (err, msg) {
 		self.apiCallback(opts.id, err, msg);
 		if (callback && typeof callback == 'function') {
-			callback.call(self);
+			callback.call(self, opts.id, err, msg);
 		}
 	});
 };
