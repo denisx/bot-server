@@ -373,7 +373,10 @@ Bot.prototype.sendClearMessage = function (opts, callback) {
 	 * @param {Object} menu.msg
 	 * @param {number} menu.msg.message_id
 	 */
-	var menu = self.menu[opts.id] || {};
+	var menu;
+	if (opts.id) {
+		menu = self.menu[opts.id];
+	}
 	var fromId = opts.fromId || ((menu && menu.msg) ? menu.msg.from.id : '');
 	var chatId = opts.chatId || ((menu && menu.msg) ? menu.msg.chat.id : '');
 	if (!parseInt(chatId)) {
