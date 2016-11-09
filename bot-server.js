@@ -243,7 +243,7 @@ Bot.prototype.getKeyboard = function (id, isInline) {
 		!menu[keyboardPath] ||
 		!self.texts[path] ||
 		!self.texts[path][menu[keyboardPath]]) {
-		console.info('no menu for', menu[keyboardPath], isInline);
+		console.info('no menu for', menu[keyboardPath], (isInline) ? 'inline keyboard': 'bottom keyboard');
 		return keyboard;
 	}
 	/**
