@@ -395,7 +395,8 @@ Bot.prototype.sendClearMessage = function (opts, callback) {
 		parse_mode: 'HTML',
 		disable_notification: opts.disable_notification || false,
 		reply_markup: opts.reply_markup || {},
-		disable_web_page_preview: opts.disable_web_page_preview || true
+		disable_web_page_preview: (typeof opts.disable_web_page_preview == 'boolean') ?
+			opts.disable_web_page_preview : true
 	};
 	if (fromId != chatId && menu && menu.msg && menu.msg.message_id) {
 		set.reply_to_message_id = menu.msg.message_id;
